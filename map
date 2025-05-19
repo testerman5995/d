@@ -1,0 +1,587 @@
+Sure! Below are **complete Java MapReduce programs** for each question separately.
+Each program has **Mapper**, **Reducer**, and **Driver** classes in one file for simplicity.
+
+---
+
+# 1. **Count of Each Word in a File**
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class WordCount {
+
+    public static class WordCountMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text word = new Text();
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            String[] tokens = value.toString().toLowerCase().split("\\W+");
+            for (String token : tokens) {
+                if (!token.isEmpty()) {
+                    word.set(token);
+                    context.write(word, one);
+                }
+            }
+        }
+    }
+
+    public static class WordCountReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "word count");
+
+        job.setJarByClass(WordCount.class);
+        job.setMapperClass(WordCountMapper.class);
+        job.setReducerClass(WordCountReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+# 2. **Student Dataset Analysis**
+
+Assume CSV input:
+`Student Name,Institute,Program Name,Gender`
+
+---
+
+### 2a. Number of Students from Each Institute
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class StudentsByInstitute {
+
+    public static class InstituteMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text institute = new Text();
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Student Name")) {
+                // skip header
+                return;
+            }
+            String[] fields = value.toString().split(",");
+            if (fields.length >= 4) {
+                institute.set(fields[1].trim());
+                context.write(institute, one);
+            }
+        }
+    }
+
+    public static class InstituteReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) {
+                sum += val.get();
+            }
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "students by institute");
+
+        job.setJarByClass(StudentsByInstitute.class);
+        job.setMapperClass(InstituteMapper.class);
+        job.setReducerClass(InstituteReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+### 2b. Number of Students Enrolled to Any Program
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class TotalStudents {
+
+    public static class CountMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private final static Text total = new Text("Total Students");
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Student Name")) return; // skip header
+            context.write(total, one);
+        }
+    }
+
+    public static class CountReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) sum += val.get();
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "total students");
+
+        job.setJarByClass(TotalStudents.class);
+        job.setMapperClass(CountMapper.class);
+        job.setReducerClass(CountReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+### 2c. Number of Boys and Girls
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class GenderCount {
+
+    public static class GenderMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text gender = new Text();
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Student Name")) return; // skip header
+            String[] fields = value.toString().split(",");
+            if (fields.length >= 4) {
+                gender.set(fields[3].trim().toLowerCase());
+                context.write(gender, one);
+            }
+        }
+    }
+
+    public static class GenderReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) sum += val.get();
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "gender count");
+
+        job.setJarByClass(GenderCount.class);
+        job.setMapperClass(GenderMapper.class);
+        job.setReducerClass(GenderReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+### 2d. Number of Boys and Girls from a Selected Institute (passed as argument)
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class GenderByInstitute {
+
+    public static class GenderInstituteMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text gender = new Text();
+        private String targetInstitute;
+
+        @Override
+        protected void setup(Context context) throws IOException, InterruptedException {
+            targetInstitute = context.getConfiguration().get("institute.name").toLowerCase();
+        }
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Student Name")) return; // skip header
+            String[] fields = value.toString().split(",");
+            if (fields.length >= 4 && fields[1].trim().toLowerCase().equals(targetInstitute)) {
+                gender.set(fields[3].trim().toLowerCase());
+                context.write(gender, one);
+            }
+        }
+    }
+
+    public static class GenderInstituteReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) sum += val.get();
+            context.write(key, new IntWritable(sum));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        if (args.length < 3) {
+            System.err.println("Usage: GenderByInstitute <input path> <output path> <institute name>");
+            System.exit(-1);
+        }
+
+        Configuration conf = new Configuration();
+        conf.set("institute.name", args[2].toLowerCase());
+
+        Job job = Job.getInstance(conf, "gender by institute");
+
+        job.setJarByClass(GenderByInstitute.class);
+        job.setMapperClass(GenderInstituteMapper.class);
+        job.setReducerClass(GenderInstituteReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+# 3. **Temperature Dataset Analysis**
+
+Assuming CSV format:
+`Date, Average Temperature, City, Country, Latitude, Longitude`
+
+---
+
+### 3a. Max and Min Temperature for All Cities
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class CityTempMinMax {
+
+    public static class CityTempMapper extends Mapper<LongWritable, Text, Text, FloatWritable> {
+        private Text city = new Text();
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Date")) return; // skip header
+
+            String[] fields = value.toString().split(",");
+            if (fields.length >= 3) {
+                try {
+                    city.set(fields[2].trim());
+                    float temp = Float.parseFloat(fields[1].trim());
+                    context.write(city, new FloatWritable(temp));
+                } catch (NumberFormatException e) {
+                    // skip malformed
+                }
+            }
+        }
+    }
+
+    public static class CityTempReducer extends Reducer<Text, FloatWritable, Text, Text> {
+        public void reduce(Text key, Iterable<FloatWritable> values, Context context) throws IOException, InterruptedException {
+            float min = Float.MAX_VALUE;
+            float max = Float.MIN_VALUE;
+            for (FloatWritable val : values) {
+                float temp = val.get();
+                if (temp < min) min = temp;
+                if (temp > max) max = temp;
+            }
+            context.write(key, new Text("Min: " + min + ", Max: " + max));
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "city temperature min max");
+
+        job.setJarByClass(CityTempMinMax.class);
+        job.setMapperClass(CityTempMapper.class);
+        job.setReducerClass(CityTempReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(FloatWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+### 3b. Count Number of Data Points for Each City
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class CityDataPointCount {
+
+    public static class CityCountMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+        private final static IntWritable one = new IntWritable(1);
+        private Text city = new Text();
+
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+            if (key.get() == 0 && value.toString().contains("Date")) return; // skip header
+            String[] fields = value.toString().split(",");
+            if (fields.length >= 3) {
+                city.set(fields[2].trim());
+                context.write(city, one);
+            }
+        }
+    }
+
+    public static class CityCountReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+        public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+            int sum = 0;
+            for (IntWritable val : values) sum += val.get();
+            context.write(key, new IntWritable(sum));
+```
+
+
+Here is the **MapReduce code for Question 3a and 3b** (Temperature Analysis):
+
+---
+
+### **Question 3a: Write a MapReduce program to compute the maximum temperature per year from a dataset.**
+
+Assume input format is similar to:
+`<year><tab><temperature>`
+Example:
+
+```
+2010	35  
+2010	40  
+2011	38  
+```
+
+#### **Mapper Code (MaxTemperatureMapper.java)**
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+public class MaxTemperatureMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    private Text year = new Text();
+    private IntWritable temperature = new IntWritable();
+
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        String[] parts = value.toString().split("\\t");
+        if (parts.length == 2) {
+            year.set(parts[0]);
+            try {
+                temperature.set(Integer.parseInt(parts[1]));
+                context.write(year, temperature);
+            } catch (NumberFormatException e) {
+                // Skip malformed records
+            }
+        }
+    }
+}
+```
+
+#### **Reducer Code (MaxTemperatureReducer.java)**
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class MaxTemperatureReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int maxTemp = Integer.MIN_VALUE;
+        for (IntWritable val : values) {
+            maxTemp = Math.max(maxTemp, val.get());
+        }
+        context.write(key, new IntWritable(maxTemp));
+    }
+}
+```
+
+---
+
+### **Question 3b: Modify the MapReduce program to compute the average temperature per year.**
+
+Same input format.
+
+#### **Reducer Code (AvgTemperatureReducer.java)**
+
+```java
+import java.io.IOException;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class AvgTemperatureReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int sum = 0;
+        int count = 0;
+        for (IntWritable val : values) {
+            sum += val.get();
+            count++;
+        }
+        int avg = (count == 0) ? 0 : sum / count;
+        context.write(key, new IntWritable(avg));
+    }
+}
+```
+
+---
+
+### **Driver Code (TemperatureAnalysisDriver.java)**
+
+```java
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+public class TemperatureAnalysisDriver {
+    public static void main(String[] args) throws Exception {
+        if (args.length != 3) {
+            System.err.println("Usage: TemperatureAnalysisDriver <input path> <output path> <mode: max|avg>");
+            System.exit(-1);
+        }
+
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Temperature Analysis");
+
+        job.setJarByClass(TemperatureAnalysisDriver.class);
+        job.setMapperClass(MaxTemperatureMapper.class); // Same for both cases
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(IntWritable.class);
+
+        if (args[2].equalsIgnoreCase("max")) {
+            job.setReducerClass(MaxTemperatureReducer.class);
+        } else if (args[2].equalsIgnoreCase("avg")) {
+            job.setReducerClass(AvgTemperatureReducer.class);
+        } else {
+            System.err.println("Mode must be 'max' or 'avg'");
+            System.exit(-2);
+        }
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+### **How to Compile and Run**
+
+1. Compile the classes:
+
+```bash
+javac -classpath `hadoop classpath` -d . MaxTemperatureMapper.java MaxTemperatureReducer.java AvgTemperatureReducer.java TemperatureAnalysisDriver.java
+```
+
+2. Create a jar file:
+
+```bash
+jar -cvf temp-analysis.jar *.class
+```
+
+3. Run for max temperature:
+
+```bash
+hadoop jar temp-analysis.jar TemperatureAnalysisDriver input_dir output_max max
+```
+
+4. Run for avg temperature:
+
+```bash
+hadoop jar temp-analysis.jar TemperatureAnalysisDriver input_dir output_avg avg
+```
+
+---
+
+Would you like help with test input/output examples or Hadoop configuration setup for this?
