@@ -1,0 +1,131 @@
+Sure! Here's a Python example using **pandas** and **matplotlib** (plus **seaborn** for some graphs) to read CSV data and display it in different graph formats:
+
+---
+
+### Setup
+
+Make sure you have the required libraries installed:
+
+```bash
+pip install pandas matplotlib seaborn
+```
+
+---
+
+### Sample CSV (say `data.csv`):
+
+```
+Category,Value
+A,10
+B,15
+C,7
+D,12
+E,5
+```
+
+---
+
+### Python code to load CSV and visualize in different graph types:
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Read CSV file
+df = pd.read_csv('data.csv')
+
+# Basic info
+print(df.head())
+
+# 1. Bar Plot (Category vs Value)
+plt.figure(figsize=(8,5))
+plt.bar(df['Category'], df['Value'], color='skyblue')
+plt.title('Bar Plot')
+plt.xlabel('Category')
+plt.ylabel('Value')
+plt.show()
+
+# 2. Line Plot
+plt.figure(figsize=(8,5))
+plt.plot(df['Category'], df['Value'], marker='o', linestyle='-', color='green')
+plt.title('Line Plot')
+plt.xlabel('Category')
+plt.ylabel('Value')
+plt.show()
+
+# 3. Pie Chart
+plt.figure(figsize=(6,6))
+plt.pie(df['Value'], labels=df['Category'], autopct='%1.1f%%', startangle=140)
+plt.title('Pie Chart')
+plt.show()
+
+# 4. Scatter Plot (Category as index)
+plt.figure(figsize=(8,5))
+plt.scatter(df.index, df['Value'], color='red')
+plt.xticks(df.index, df['Category'])
+plt.title('Scatter Plot')
+plt.xlabel('Category')
+plt.ylabel('Value')
+plt.show()
+
+# 5. Seaborn Boxplot (if multiple rows per category, here for demo)
+# For this example, let's duplicate some data to simulate multiple values per category
+df_box = pd.DataFrame({
+    'Category': ['A','A','B','B','C','C','D','D','E','E'],
+    'Value': [10,11,15,14,7,6,12,13,5,4]
+})
+
+plt.figure(figsize=(8,5))
+sns.boxplot(x='Category', y='Value', data=df_box)
+plt.title('Box Plot (Seaborn)')
+plt.show()
+```
+
+---
+
+### Explanation:
+
+* **Bar Plot**: Visualizes categories with their values.
+* **Line Plot**: Shows trends over categories.
+* **Pie Chart**: Shows the share of each category.
+* **Scatter Plot**: Shows data points; category shown as ticks.
+* **Box Plot**: Useful if multiple values per category to show distribution.
+
+---
+
+### Let me know if you want me to adapt this for a specific dataset or more graph types!
+
+
+
+Sure! A **donut chart** is just a **pie chart** with a hole in the center. You can create it easily using `matplotlib` by adjusting the `wedgeprops` parameter in `plt.pie()`.
+
+---
+
+### ✅ Donut Chart Example (from the same `data.csv`):
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Read CSV
+df = pd.read_csv('data.csv')
+
+# Donut Chart
+plt.figure(figsize=(6,6))
+plt.pie(df['Value'], labels=df['Category'], autopct='%1.1f%%', startangle=140,
+        wedgeprops={'width': 0.4})  # width < 1 creates a donut effect
+plt.title('Donut Chart')
+plt.show()
+```
+
+---
+
+### 📝 Notes:
+
+* `wedgeprops={'width': 0.4}` creates the donut hole.
+* You can adjust `width` for thicker or thinner rings.
+
+---
+
+Let me know if you'd like to combine this with more metrics or apply styling (e.g., colors, legend, center text)!
