@@ -1,0 +1,108 @@
+Here’s a step-by-step solution for all your **Web Scraping Assignments** using **Python** with the help of `requests`, `BeautifulSoup`, and `pandas` libraries.
+
+---
+
+### ✅ Prerequisites:
+
+Install the required libraries if not already installed:
+
+```bash
+pip install requests beautifulsoup4 pandas
+```
+
+---
+
+## ✅ Q1. Scrape all jobs from [https://realpython.github.io/fake-jobs/](https://realpython.github.io/fake-jobs/)
+
+```python
+import requests
+from bs4 import BeautifulSoup
+
+url = "https://realpython.github.io/fake-jobs/"
+response = requests.get(url)
+soup = BeautifulSoup(response.content, 'html.parser')
+
+job_elements = soup.find_all("div", class_="card-content")
+
+for job in job_elements:
+    title = job.find("h2", class_="title").text.strip()
+    company = job.find("h3", class_="company").text.strip()
+    location = job.find("p", class_="location").text.strip()
+    print(f"Job Title: {title}\nCompany: {company}\nLocation: {location}\n")
+```
+
+---
+
+## ✅ Q2. Scrape **only Python related** job postings
+
+```python
+for job in job_elements:
+    title = job.find("h2", class_="title").text.strip()
+    if "python" in title.lower():
+        print(f"Python Job Title: {title}")
+```
+
+---
+
+## ✅ Q3. Extract **Job Title, Company, and Location** of Python jobs
+
+```python
+for job in job_elements:
+    title = job.find("h2", class_="title").text.strip()
+    if "python" in title.lower():
+        company = job.find("h3", class_="company").text.strip()
+        location = job.find("p", class_="location").text.strip()
+        print(f"Title: {title}\nCompany: {company}\nLocation: {location}\n")
+```
+
+---
+
+## ✅ Q4. Get the **application links** of Python-related jobs
+
+```python
+for job in job_elements:
+    title = job.find("h2", class_="title").text.strip()
+    if "python" in title.lower():
+        link = job.find("a", text="Apply").get("href")
+        print(f"Job Title: {title}\nApply Link: {link}\n")
+```
+
+---
+
+## ✅ Q5. Scrape all information about **Indian universities** from Wikipedia and save to CSV
+
+```python
+import pandas as pd
+
+wiki_url = "https://en.wikipedia.org/wiki/List_of_universities_in_India"
+response = requests.get(wiki_url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# Wikipedia tables are usually classed as 'wikitable'
+tables = soup.find_all("table", {"class": "wikitable"})
+
+all_universities = []
+
+for table in tables:
+    df = pd.read_html(str(table))[0]
+    all_universities.append(df)
+
+# Combine all tables into one DataFrame
+final_df = pd.concat(all_universities, ignore_index=True)
+
+# Save to CSV
+final_df.to_csv("indian_universities.csv", index=False)
+
+print("Saved data to 'indian_universities.csv'")
+```
+
+---
+
+### ✅ Output:
+
+* First 4 questions display data in the terminal.
+* Q5 creates a file `indian_universities.csv` with tabulated university data.
+
+---
+
+Would you like me to combine all these into a single script with menu options?
