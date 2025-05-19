@@ -1,0 +1,170 @@
+Got it! You want **3 Python applications** that read data from CSV files and visualize data with charts for comparison.
+
+I'll provide **step-by-step code examples** using **Pandas** for CSV reading and **Matplotlib / Seaborn** for plotting.
+
+---
+
+### 1. Compare the performance for yearly rainfall data for last 20 years of at least three states
+
+#### Steps:
+
+* CSV should have columns like: `Year, State, Rainfall`
+* Filter last 20 years data
+* Select 3 states
+* Plot line chart comparing yearly rainfall trends
+
+---
+
+### 2. Develop stacked column chart for comparing sales data of 3 products for last 4 years
+
+#### Steps:
+
+* CSV columns: `Year, Product1, Product2, Product3`
+* Use stacked bar chart to visualize yearly sales by product
+
+---
+
+### 3. Subgraph showing % internships offered by companies to CDC, BDA, AIML, Cyber programs
+
+#### Steps:
+
+* CSV columns: `Company, CDC, BDA, AIML, Cyber`
+* For each company, show stacked bar representing % distribution of internships
+
+---
+
+# Code Examples for each:
+
+---
+
+## 1. Rainfall Comparison for 3 States
+
+Assuming CSV (`rainfall.csv`):
+
+```
+Year,State,Rainfall
+2005,State1,123
+2005,State2,140
+2005,State3,110
+...
+2024,State1,130
+2024,State2,150
+2024,State3,120
+```
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load data
+df = pd.read_csv('rainfall.csv')
+
+# Filter last 20 years (assuming current year 2024)
+df = df[df['Year'] >= 2005]
+
+# Choose 3 states
+states = ['State1', 'State2', 'State3']
+df = df[df['State'].isin(states)]
+
+# Pivot data: Rows=Year, Columns=State, Values=Rainfall
+pivot_df = df.pivot(index='Year', columns='State', values='Rainfall')
+
+# Plot
+plt.figure(figsize=(12,6))
+for state in states:
+    plt.plot(pivot_df.index, pivot_df[state], marker='o', label=state)
+
+plt.title('Yearly Rainfall Comparison (Last 20 Years)')
+plt.xlabel('Year')
+plt.ylabel('Rainfall (mm)')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+---
+
+## 2. Stacked Column Chart for Sales of 3 Products for Last 4 Years
+
+Assuming CSV (`sales.csv`):
+
+```
+Year,Product1,Product2,Product3
+2020,100,150,200
+2021,110,160,210
+2022,120,170,220
+2023,130,180,230
+```
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load data
+df = pd.read_csv('sales.csv')
+
+# Plot stacked bar chart
+plt.figure(figsize=(10,6))
+plt.bar(df['Year'], df['Product1'], label='Product1')
+plt.bar(df['Year'], df['Product2'], bottom=df['Product1'], label='Product2')
+plt.bar(df['Year'], df['Product3'], bottom=df['Product1']+df['Product2'], label='Product3')
+
+plt.title('Stacked Sales Data of 3 Products (Last 4 Years)')
+plt.xlabel('Year')
+plt.ylabel('Sales')
+plt.legend()
+plt.show()
+```
+
+---
+
+## 3. Subgraph Showing % Internships Offered by Companies to Programs
+
+Assuming CSV (`internships.csv`):
+
+```
+Company,CDC,BDA,AIML,Cyber
+CompanyA,30,25,20,25
+CompanyB,40,20,30,10
+CompanyC,25,35,20,20
+```
+
+```python
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load data
+df = pd.read_csv('internships.csv')
+
+# Convert counts to % if needed (assuming data is already %)
+
+# Prepare plot
+programs = ['CDC', 'BDA', 'AIML', 'Cyber']
+companies = df['Company']
+
+# Stacked bar chart
+plt.figure(figsize=(12,6))
+
+bottom = [0]*len(df)
+for program in programs:
+    plt.bar(companies, df[program], bottom=bottom, label=program)
+    bottom = bottom + df[program]
+
+plt.title('Percentage of Internships Offered by Companies to Programs')
+plt.xlabel('Companies')
+plt.ylabel('Percentage (%)')
+plt.legend()
+plt.show()
+```
+
+---
+
+# Summary
+
+* Use **Pandas** to read and manipulate CSV data.
+* Use **Matplotlib** stacked bar charts and line plots for visualization.
+* Adjust file paths and column names according to your actual CSV files.
+
+If you want, I can help you build the CSV templates or add tooltips, labels, or even use Seaborn or Plotly for interactive visuals.
+
+Would you like me to generate some example CSV files too?
