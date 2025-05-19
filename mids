@@ -1,0 +1,203 @@
+Here's a detailed, **step-by-step answer** for all three parts of your question from **CO1**, including Hadoop commands, Java MapReduce code, and a PySpark application using your provided weather data.
+
+---
+
+## ✅ **Part A: Hadoop Commands (10 marks)**
+
+### **1. Transfer selected columns from local DB table into HDFS using warehouse method** (3 marks)
+
+Assuming you use **Sqoop** and have a local MySQL table `weather`, and want to extract only `YEAR`, `JAN`, and `DEC` columns:
+
+```bash
+sqoop import \
+--connect jdbc:mysql://localhost:3306/weatherdb \
+--username root \
+--password yourpassword \
+--table weather \
+--columns "YEAR,JAN,DEC" \
+--target-dir /user/warehouse/weather \
+--as-textfile \
+--warehouse-dir /user/warehouse \
+--m 1
+```
+
+> `--columns` helps transfer selected columns
+> `--warehouse-dir` uses the warehouse method
+> `--m 1` limits to 1 mapper to avoid splitting.
+
+---
+
+### **2. Commands to export data from HDFS to local table** (4 marks)
+
+**Step-by-step commands using Sqoop export:**
+
+#### a. Prepare a table in MySQL (if not exists):
+
+```sql
+CREATE TABLE weather_export (
+  YEAR INT,
+  JAN FLOAT,
+  DEC FLOAT
+);
+```
+
+#### b. Run export command from HDFS to MySQL:
+
+```bash
+sqoop export \
+--connect jdbc:mysql://localhost:3306/weatherdb \
+--username root \
+--password yourpassword \
+--table weather_export \
+--export-dir /user/warehouse/weather \
+--input-fields-terminated-by ',' \
+--m 1
+```
+
+> Assumes HDFS file is CSV. Change `--input-fields-terminated-by` if your delimiter differs.
+
+---
+
+### **3. HDFS commands** (3 marks)
+
+#### a. Create directory `/user/test/CDC24` in a single command:
+
+```bash
+hdfs dfs -mkdir -p /user/test/CDC24
+```
+
+#### b. Copy multiple files from local to HDFS:
+
+```bash
+hdfs dfs -put file1.csv file2.csv file3.csv /user/test/CDC24/
+```
+
+#### c. Move file within HDFS:
+
+```bash
+hdfs dfs -mv /user/test/CDC24/file1.csv /user/test/CDC24/moved_file1.csv
+```
+
+---
+
+## ✅ **Part B: Java MapReduce Program (10 marks)**
+
+### Problem:
+
+Compute **total runs scored** by players grouped by **country**.
+
+### Dataset Fields:
+
+* Player Name
+* Country
+* Runs Scored
+* Number of matches
+
+### Java MapReduce Code:
+
+#### **Mapper.java**
+
+```java
+public class PlayerMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        // Skip header
+        if (key.get() == 0 && value.toString().contains("Player Name")) return;
+
+        String[] fields = value.toString().split(",");
+        String country = fields[1].trim();
+        int runs = Integer.parseInt(fields[2].trim());
+
+        context.write(new Text(country), new IntWritable(runs));
+    }
+}
+```
+
+#### **Reducer.java**
+
+```java
+public class PlayerReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) throws IOException, InterruptedException {
+        int totalRuns = 0;
+        for (IntWritable val : values) {
+            totalRuns += val.get();
+        }
+        context.write(key, new IntWritable(totalRuns));
+    }
+}
+```
+
+#### **Driver.java**
+
+```java
+public class PlayerDriver {
+    public static void main(String[] args) throws Exception {
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "Total Runs by Country");
+
+        job.setJarByClass(PlayerDriver.class);
+        job.setMapperClass(PlayerMapper.class);
+        job.setReducerClass(PlayerReducer.class);
+
+        job.setOutputKeyClass(Text.class);
+        job.setOutputValueClass(IntWritable.class);
+
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
+    }
+}
+```
+
+---
+
+## ✅ **Part C: PySpark Application (10 marks)**
+
+Using dataset: **Weather Data in India from 1901 to 2017.csv**
+
+Assuming you’ve loaded it into a DataFrame.
+
+```python
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, round, avg, greatest, least
+
+# 1. Start Spark session
+spark = SparkSession.builder.appName("WeatherAnalysis").getOrCreate()
+
+# 2. Read CSV file
+df = spark.read.csv("weather.csv", header=True, inferSchema=True)
+
+# 1. Add average temperature column
+months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+df = df.withColumn("AvgTemp", round(sum([col(m) for m in months]) / 12, 2))
+
+# 2. Add Min and Max temperature columns
+df = df.withColumn("MinTemp", least(*[col(m) for m in months]))
+df = df.withColumn("MaxTemp", greatest(*[col(m) for m in months]))
+
+# 3. Find hottest year
+hottest = df.orderBy(col("AvgTemp").desc()).select("YEAR", "AvgTemp").first()
+print(f"Hottest Year: {hottest['YEAR']} with AvgTemp: {hottest['AvgTemp']}")
+
+# 4. Find coldest year
+coldest = df.orderBy(col("AvgTemp").asc()).select("YEAR", "AvgTemp").first()
+print(f"Coldest Year: {coldest['YEAR']} with AvgTemp: {coldest['AvgTemp']}")
+
+# Optional: Show full processed DataFrame
+# df.select("YEAR", "AvgTemp", "MinTemp", "MaxTemp").show()
+```
+
+---
+
+## ✅ Summary of Marks:
+
+| Part      | Task                  | Marks        |
+| --------- | --------------------- | ------------ |
+| A         | Hadoop/Sqoop Commands | 10           |
+| B         | MapReduce (Java)      | 10           |
+| C         | PySpark Application   | 10           |
+| **Total** |                       | **30 marks** |
+
+---
+
+Would you like the Python code for reading your uploaded dataset file (you shared data from 1901–1915) in a PySpark context? I can adapt Part C specifically to that subset if needed.
